@@ -1,0 +1,20 @@
+# spacewalk-sql --select-mode - <<EOF
+SELECT *
+FROM rhnserverfqdn;
+EOF
+
+ 
+
+id |                     name                     | server_id  | is_primary |            created            |           modified
+----+----------------------------------------------+------------+------------+-------------------------------+---------------spacewalk-sql --select-mode - <<EOF > all_tables.txt
+
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+ORDER BY table_name;
+EOF
+
+spacewalk-sql --select-mode - <<EOF
+SELECT *
+FROM rhnServer;
+EOF
