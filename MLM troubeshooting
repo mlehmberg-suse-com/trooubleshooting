@@ -18,3 +18,40 @@ spacewalk-sql --select-mode - <<EOF
 SELECT *
 FROM rhnServer;
 EOF
+
+
+spacecmd -- system_delete -c FORCE_DELETE sles15sp7.example.com
+INFO: Connected to http://localhost/rpc/api as admin
+Profile                System ID
+---------------------  ---------
+sles15sp7.example.com  1000010032
+
+Delete these systems [y/N]: y
+INFO: 1 system(s) scheduled for removal
+
+The key is to Combine server key and intermediate key to chain key:
+cat server.pem inter.pem >> chain.pem
+
+Working correctly Here are all the commands ( I think)  Foreign Proxy Creation
+mgrctl exec -ti -- rhn-ssl-tool --gen-server --dir="/root/ssl-build" --set-country="AU"   --set-state="WA" --set-city="Perth" --set-org="SUSE"   --set-org-unit="support" --set-email="marc.lehmberg@suse.com"   --set-hostname=MCL-ML-LB --set-cname "MCL-ML-LB.mcl-lab.local" --set-cname "mcl-ml-lb.mcl-lab.local"
+podman  cp uyuni-server:root/ssl-build/MCL-ML-LB/server.crt MCL-ML-LB.crt
+podman  cp uyuni-server:root/ssl-build/MCL-ML-LB/server.key MCL-ML-LB.key
+mgrctl exec -ti 'spacecmd proxy_container_config -- -p 8022 -- MCL-ML-LB.mcl-lab.local mcl-mlm.mcl-lab.local 2048 marc.lehmberg@suse.com /root/ssl-build/RHN-ORG-TRUSTED-SSL-CERT /root/ssl-build//MCL-ML-LB/server.crt /root/ssl-build/MCL-ML-LB/server.key'
+
+
+
+Standard Proxy
+Register Proxy as minion
+Configure this minion as a proxy
+
+Create Certs
+mgrctl exec -ti -- rhn-ssl-tool --gen-server --dir="/root/ssl-build" --set-country="AU"   --set-state="WA" --set-city="Perth" --set-org="SUSE"   --set-org-unit="support" --set-email="marc.lehmberg@suse.com"   --set-hostname=MCL-AZ-PROXY --set-cname="MCL-AZ-PROXY.mcl-lab.local" --set-cname="mcl-az-proxy.mcl-lab.local" --set-cname="mcl-az-proxy"
+Add LB hostname to cert
+mgrctl exec -ti -- rhn-ssl-tool --gen-server --dir="/root/ssl-build" --set-country="AU"   --set-state="WA" --set-city="Perth" --set-org="SUSE"   --set-org-unit="support" --set-email="marc.lehmberg@suse.com"   --set-hostname=MCL-AZ-PROXY --set-cname="MCL-AZ-PROXY.mcl-lab.local" --set-cname="mcl-az-proxy.mcl-lab.local" --set-cname="mcl-az-proxy" --set-cname "MCL-ML-LB.mcl-lab.local"
+podman  cp uyuni-server:root/ssl-build/MCL-AZ-PROXY/server.crt MCL-AZ-PROXY.crt
+podman  cp uyuni-server:root/ssl-build/MCL-AZ-PROXY/server.key MCL-AZ-PROXY.key
+mgrctl exec -ti 'spacecmd proxy_container_config -- -o /tmp/mcl-azure-proxy-config.tar.gz -p 8022 -- mcl-az-proxy.mcl-lab.local mcl-mlm.mcl-lab.local 2048 marc.lehmberg@suse.com /root/ssl-build/RHN-ORG-TRUSTED-SSL-CERT /root/ssl-build/MCL-AZ-PROXY//server.crt /root/ssl-build/MCL-AZ-PROXY//server.key'
+podman  cp  uyuni-server:/tmp/mcl-azure-proxy-config.tar.gz .
+On proxy
+copy the config to the proxy
+mgrprxy install proxy mcl-azure-proxy-config.tar.gz
